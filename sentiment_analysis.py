@@ -57,7 +57,28 @@ def analyze_feed(keyword: str, session: requests.Session) -> pd.DataFrame:
                 summary = entry.get('summary', '')
                 published = entry.get('published', '')
                 link = entry.get('link', '')
-                source = entry.get('source', {}).get('text', 'Unknown')
+                
+                # Extract source - try multiple possible locations
+                source = 'Unknown'
+                if hasattr(entry, 'source') and entry.source:
+                    if hasattr(entry.source, 'text'):
+                        source = entry.source.text
+                    elif isinstance(entry.source, str):
+                        source = entry.source
+                elif 'source' in entry:
+                    if isinstance(entry.source, dict) and 'text' in entry.source:
+                        source = entry.source['text']
+                    elif isinstance(entry.source, str):
+                        source = entry.source
+                
+                # Fallback: extract from link domain
+                if source == 'Unknown' and link:
+                    try:
+                        from urllib.parse import urlparse
+                        parsed_url = urlparse(link)
+                        source = parsed_url.netloc
+                    except:
+                        pass
                 
                 # Clean HTML tags from summary
                 summary = re.sub(r'<[^>]+>', '', summary)
@@ -71,8 +92,9 @@ def analyze_feed(keyword: str, session: requests.Session) -> pd.DataFrame:
                 except:
                     pub_date = datetime.now()
                 
-                # Combine title and summary for sentiment analysis
-                text_content = f"{title}. {summary}"
+                # Combine title and summary for comprehensive sentiment analysis
+                # Use both title and summary for better accuracy
+                text_content = f"{title}. {summary}" if summary else title
                 
                 # Perform sentiment analysis
                 sentiment_results = perform_sentiment_analysis(text_content)
@@ -291,7 +313,28 @@ def analyze_rss_entries(entries) -> pd.DataFrame:
             summary = entry.get('summary', '')
             published = entry.get('published', '')
             link = entry.get('link', '')
-            source = entry.get('source', {}).get('text', 'Unknown')
+            
+            # Extract source - try multiple possible locations
+            source = 'Unknown'
+            if hasattr(entry, 'source') and entry.source:
+                if hasattr(entry.source, 'text'):
+                    source = entry.source.text
+                elif isinstance(entry.source, str):
+                    source = entry.source
+            elif 'source' in entry:
+                if isinstance(entry.source, dict) and 'text' in entry.source:
+                    source = entry.source['text']
+                elif isinstance(entry.source, str):
+                    source = entry.source
+            
+            # Fallback: extract from link domain
+            if source == 'Unknown' and link:
+                try:
+                    from urllib.parse import urlparse
+                    parsed_url = urlparse(link)
+                    source = parsed_url.netloc
+                except:
+                    pass
             
             # Clean HTML tags from summary
             summary = re.sub(r'<[^>]+>', '', summary)
@@ -305,8 +348,9 @@ def analyze_rss_entries(entries) -> pd.DataFrame:
             except:
                 pub_date = datetime.now()
             
-            # Combine title and summary for sentiment analysis
-            text_content = f"{title}. {summary}"
+            # Combine title and summary for comprehensive sentiment analysis
+            # Use both title and summary for better accuracy
+            text_content = f"{title}. {summary}" if summary else title
             
             # Perform sentiment analysis
             sentiment_results = perform_sentiment_analysis(text_content)
@@ -349,8 +393,8 @@ def analyze_xml_elements(root) -> pd.DataFrame:
             if title_elem is not None:
                 title = title_elem.text or ''
             
-            # Extract summary/description
-            summary_elem = item.find('description') or item.find('summary')
+            # Extract summary/description (try summary tag first, then description)
+            summary_elem = item.find('summary') or item.find('description')
             if summary_elem is not None:
                 summary = summary_elem.text or ''
                 summary = re.sub(r'<[^>]+>', '', summary)

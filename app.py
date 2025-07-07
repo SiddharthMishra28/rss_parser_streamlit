@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 import requests
 import os
+import json
 from sentiment_analysis import analyze_feed, analyze_uploaded_file
 from utils import build_sentiment_summary, make_clickable_link, parse_uploaded_file
 
@@ -35,6 +36,10 @@ if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 if 'current_keyword' not in st.session_state:
     st.session_state.current_keyword = 'ubs'
+if 'show_article_popup' not in st.session_state:
+    st.session_state.show_article_popup = False
+if 'selected_article' not in st.session_state:
+    st.session_state.selected_article = None
 
 # Analysis controls based on type
 if analysis_type == "Live RSS Feed":
@@ -215,28 +220,27 @@ if st.session_state.analysis_results is not None:
     
     st.markdown("---")
     
-    # Display data table
+    # Display data table with interactive functionality
     st.subheader("📋 Article Details")
+    
+    # Add article selection functionality
+    st.markdown("*Click on an article row to view detailed information in a pop-up*")
     
     # Prepare display DataFrame
     display_df = df.copy()
-    
-    # Make article titles clickable if URL is available
-    if 'url' in display_df.columns:
-        display_df['title'] = display_df.apply(
-            lambda row: make_clickable_link(row['title'], row['url']), 
-            axis=1
-        )
+    display_df['row_id'] = range(len(display_df))
     
     # Select columns to display
     columns_to_show = ['title', 'source', 'date', 'textblob_sentiment', 'vader_sentiment', 'action_urgency']
     available_columns = [col for col in columns_to_show if col in display_df.columns]
     
-    # Display the table
-    st.dataframe(
+    # Display the table with selection
+    event = st.dataframe(
         display_df[available_columns],
         use_container_width=True,
         hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row",
         column_config={
             'title': st.column_config.TextColumn(
                 'Article Title',
@@ -264,6 +268,66 @@ if st.session_state.analysis_results is not None:
             )
         }
     )
+    
+    # Handle row selection for popup
+    if event.selection.rows:
+        selected_idx = event.selection.rows[0]
+        selected_article = df.iloc[selected_idx]
+        
+        # Show popup with article details
+        with st.expander("📖 Article Details", expanded=True):
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                st.markdown(f"### {selected_article['title']}")
+                
+                if 'summary' in selected_article and selected_article['summary']:
+                    st.markdown("**Summary:**")
+                    st.write(selected_article['summary'])
+                else:
+                    st.info("No summary available for this article")
+                
+                # Sentiment Analysis Results
+                st.markdown("**Sentiment Analysis:**")
+                sentiment_col1, sentiment_col2 = st.columns(2)
+                
+                with sentiment_col1:
+                    st.metric(
+                        "TextBlob Sentiment", 
+                        selected_article['textblob_sentiment'],
+                        delta=f"Polarity: {selected_article.get('textblob_polarity', 0):.3f}"
+                    )
+                
+                with sentiment_col2:
+                    st.metric(
+                        "VADER Sentiment", 
+                        selected_article['vader_sentiment'],
+                        delta=f"Compound: {selected_article.get('vader_compound', 0):.3f}"
+                    )
+                
+                st.metric("Action Urgency", selected_article.get('action_urgency', 'N/A'))
+            
+            with col2:
+                st.markdown("**Article Info:**")
+                st.write(f"**Source:** {selected_article.get('source', 'Unknown')}")
+                st.write(f"**Published:** {selected_article.get('date', 'Unknown')}")
+                
+                if 'url' in selected_article and selected_article['url']:
+                    st.markdown(f"[🔗 Read Full Article]({selected_article['url']})")
+                
+                # Additional metrics
+                if 'textblob_subjectivity' in selected_article:
+                    st.metric(
+                        "Subjectivity", 
+                        f"{selected_article['textblob_subjectivity']:.3f}",
+                        help="0 = Objective, 1 = Subjective"
+                    )
+                
+                if 'vader_positive' in selected_article:
+                    st.write("**VADER Breakdown:**")
+                    st.write(f"Positive: {selected_article.get('vader_positive', 0):.3f}")
+                    st.write(f"Negative: {selected_article.get('vader_negative', 0):.3f}")
+                    st.write(f"Neutral: {selected_article.get('vader_neutral', 0):.3f}")
     
     st.markdown("---")
     
