@@ -1,0 +1,178 @@
+### 🔧 **AI Coding Agent Prompt:**
+
+You are an AI coding assistant. Your task is to build a **production-ready, visually rich Streamlit application** for an investment bank. This application will analyze sentiment from live RSS news feeds and also consume uploaded CSV/JSON data. The user has provided a core sentiment analysis code. You must **preserve this code with minimal changes**, integrating it seamlessly into the full application.
+
+---
+
+## 🔍 **Use Case Summary:**
+
+The application will:
+
+* Fetch **Google News RSS feeds** for a user-defined keyword (initially "ubs")
+* Perform **sentiment analysis** using **TextBlob** and **VADER**
+* Aggregate and visualize **sentiment insights** using:
+
+  * Aggregated sentiment count cards
+  * A **Donut Chart** for sentiment distribution
+  * A **Trend Line Chart** of sentiment over time
+  * An interactive **data table** with clickable article links (open in new tab)
+* Accept **CSV or JSON file uploads** for offline sentiment processing
+
+---
+
+## ✅ **Requirements & Constraints:**
+
+1. ✅ **Keep the sentiment analysis code block minimally modified.**
+2. ✅ Use **Streamlit** as the web app framework.
+3. ✅ Add separate UI and utility logic around the main analysis code.
+4. ✅ Allow **keyword input** from the user to dynamically fetch relevant Google News articles.
+5. ✅ Include **upload feature** to parse and analyze JSON/CSV files with similar structure.
+6. ✅ Enhance the UI with beautiful, functional components:
+
+   * Info cards showing counts of `Positive`, `Negative`, `Neutral`
+   * **Donut chart** showing sentiment proportions (e.g. using `plotly` or `matplotlib`)
+   * **Line chart** showing sentiment trend over time
+   * Interactive **dataframe with hyperlinks** to news articles (open in new tab)
+7. ✅ Ensure **responsive layout** for wide dashboards using Streamlit’s `columns()` and layout APIs
+8. ✅ Ensure that **any missing data** (e.g. in uploaded files) is handled gracefully
+
+---
+
+## 📂 **Expected Project Structure:**
+
+```
+sentiment_dashboard/
+│
+├── app.py                          # Main Streamlit app file
+├── sentiment_analysis.py          # (Mostly unchanged) Sentiment logic
+├── utils.py                       # Utility functions (feed parser, data transformer, uploader)
+├── requirements.txt               # Python dependencies
+├── assets/
+│   └── style.css                  # Optional: custom styles
+```
+
+---
+
+## 🧠 **Detailed Task Breakdown:**
+
+### 1. `app.py` — Main Dashboard Logic
+
+* Allow the user to:
+
+  * Input a **search keyword**
+  * Click “Analyze Sentiment” button
+  * **Upload a CSV or JSON file**
+* Based on the user action:
+
+  * If **live**, use `sentiment_analysis.py` with the given keyword
+  * If **uploaded**, parse file and send content to sentiment function
+* Use **Streamlit columns** for layout:
+
+  * Summary cards (total sentiment counts)
+  * Donut chart
+  * Time-based sentiment trend
+  * News data table with links
+
+### 2. `sentiment_analysis.py` — Core Sentiment Logic
+
+* Retain the user’s original code with only minor refactors:
+
+  * Wrap logic into a function `analyze_feed(keyword: str, session: requests.Session) -> pd.DataFrame`
+  * Add optional param to allow feed or file-based input
+* Return a DataFrame with:
+
+  * Date, Title, Source, Sentiments, Action Urgency, Article URL
+
+### 3. `utils.py` — Utility Code
+
+* `parse_uploaded_file(file)` to support:
+
+  * CSV with “title”, “summary”, “published”
+  * JSON with similar keys
+* `build_sentiment_summary(df)`:
+
+  * Aggregate counts
+  * Prepare trend data
+* Add `make_clickable_link(title, url)` for links in the DataFrame
+
+### 4. `requirements.txt`
+
+Include:
+
+```text
+streamlit
+requests
+feedparser
+textblob
+vaderSentiment
+pandas
+plotly
+matplotlib
+```
+
+---
+
+## 📈 **Visual Components Details**
+
+1. **Info Cards** (via Streamlit columns):
+
+   * Use emoji/icons and bold formatting for `Positive`, `Negative`, `Neutral`
+2. **Donut Chart**:
+
+   * Use `plotly.express.pie` with `hole=0.4`
+   * Show percentage labels
+3. **Trend Chart**:
+
+   * Use `plotly.express.line` or `altair`
+   * Plot `count of sentiment` over `published date`
+4. **News Table**:
+
+   * Hyperlink article title to original source
+   * Ensure it opens in new tab using `target="_blank"` in Markdown
+   * Sort by recent first
+
+---
+
+## 🔐 **Security Considerations**
+
+* Ensure proxy credentials are securely stored (e.g. via environment variables)
+* Handle invalid feeds or failed HTTP requests gracefully
+* File uploads must be size-limited and validated
+
+---
+
+## 📤 Example Function Signatures:
+
+```python
+def analyze_feed(keyword: str, session: requests.Session) -> pd.DataFrame:
+    # (Your code adapted into function here)
+
+def analyze_uploaded_file(file: UploadedFile) -> pd.DataFrame:
+    # Detect CSV or JSON
+    # Parse and extract title/summary/published
+    # Reuse sentiment code per article
+
+def visualize_dashboard(df: pd.DataFrame):
+    # Plots, cards, and dataframe display
+```
+
+---
+
+## 🔧 Post-Development Instructions
+
+* Test with keywords like `ubs`, `goldman sachs`, `inflation`, etc.
+* Upload test JSON and CSV containing:
+
+  * `title`, `summary`, `published`, `url`
+* Deploy app via **Streamlit Cloud** or **Docker container** with port exposure
+
+---
+
+## 📌 Final Notes
+
+The AI agent must ensure:
+
+* The sentiment logic block stays intact
+* Any new features are **modular**, clean, and extensible
+* Dashboard UI is professional and minimalistic
+* Output code is **Python 3.8+**, fully functional end-to-end
